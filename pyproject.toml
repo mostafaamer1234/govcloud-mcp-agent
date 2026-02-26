@@ -1,0 +1,6 @@
+[project]
+name = "govcloud-mcp-agent-platform"
+version = "0.1.0"
+
+[tool.uvicorn]
+app = "mcp_server.app:app"
