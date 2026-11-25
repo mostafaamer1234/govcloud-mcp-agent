@@ -1,29 +1,38 @@
+# docker compose up --build            -> MCP server only (BM25 retrieval, zero egress)
+# docker compose --profile opensearch up -> also start a private OpenSearch node
+#
+# Generate certificates first:  python scripts/gen_certs.py --out certs
+
 services:
+  mcp-server:
+    build: .
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./certs:/certs:ro
+      - audit-logs:/app/logs
+    environment:
+      ZERO_EGRESS: "1"
+      ALLOWED_HOSTS: "localhost:*,127.0.0.1:*,mcp-server:*"
+      # Uncomment to use the OpenSearch backend (and add opensearch to EGRESS_ALLOWLIST)
+      # RETRIEVAL_BACKEND: opensearch
+      # OPENSEARCH_URL: http://opensearch:9200
+      # EGRESS_ALLOWLIST: opensearch
+    read_only: true
+    tmpfs:
+      - /tmp
+
   opensearch:
+    profiles: ["opensearch"]
     image: opensearchproject/opensearch:2.13.0
     environment:
       - discovery.type=single-node
-      - plugins.security.disabled=true
+      - plugins.security.disabled=true  # local only; use fine-grained access control in production
       - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    ports:
-      - "9200:9200"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:9200 >/dev/null || exit 1"]
       interval: 10s
-      timeout: 5s
       retries: 30
 
-  opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.13.0
-    environment:
-      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
-      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
-    ports:
-      - "5601:5601"
-    depends_on:
-      opensearch:
-        condition: service_healthy
+volumes:
+  audit-logs:

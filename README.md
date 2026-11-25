@@ -1,284 +1,141 @@
+# GovCloud-Style MCP Agent Platform
 
-```md
-# GovCloud-Style MCP Agent Platform (mTLS + RAG + Zero-Egress)
+![CI](https://github.com/mostafaamer1234/govcloud-mcp-agent/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-This project is a production-inspired, security-first implementation of an **MCP (Model Context Protocol) tool server** with **agentic orchestration**, **mutual TLS (mTLS)** authentication, **Retrieval-Augmented Generation (RAG)**, **zero-egress architecture assumptions**, and **compliance-grade audit logging**.
+A **Model Context Protocol (MCP) tool server** for regulated environments. An agent reaches grounded-retrieval tools only through **mutual TLS**, with **scoped bearer tokens**. Every decision goes to a **tamper-evident audit log**, and the process **refuses outbound network connections** that are not on an allowlist.
 
-It simulates how enterprise AI systems are deployed in **regulated environments** such as **AWS GovCloud**, air-gapped VPCs, and zero-trust SaaS platforms.
-
----
-
-## Key Features
-
-- ✅ **MCP Tool Server** (FastAPI + HTTPS)
-- ✅ **Agentic AI Orchestration**
-- ✅ **Mutual TLS (mTLS) Authentication**
-- ✅ **Zero Public Internet Egress Architecture Pattern**
-- ✅ **Retrieval-Augmented Generation (RAG) Tool**
-- ✅ **Structured Compliance & Audit Logging**
-- ✅ **GovCloud-Compatible Architecture Mapping**
-- ✅ **Deterministic, Testable Tool Contracts**
-
----
-
-## 🏗 Architecture Overview
+It is built on the official [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) (Streamable HTTP transport), so any MCP client can connect to it.
 
 ```
-
-+------------------+             mTLS             +------------------------+
-|   Agent Client   |  ------------------------>  |      MCP Tool Server   |
-|  (orchestrator)  |                             |     (FastAPI + HTTPS)  |
-+------------------+                             +-----------+------------+
-|                                                            |
-|                                                        MCP Tools
-|                                                            |
-v                                                            v
-+---------------------+                                   +----------------------+
-| Agent Planner       |                                   | search_docs Tool     |
-| Tool Selection      |                                   | rag_answer Tool      |
-+---------------------+                                   +----------------------+
-|
-v
-+----------------------+
-| Audit Logs (JSONL)   |
-| Compliance / SIEM    |
-+----------------------+
-
+                      TLS 1.2+, client cert REQUIRED
+┌────────────────────┐  + Authorization: Bearer <token>   ┌──────────────────────────────────────────┐
+│ Agent orchestrator │ ─────────────────────────────────▶ │ MCP server (Streamable HTTP)              │
+│  planner           │                                    │  1. mTLS handshake (uvicorn CERT_REQUIRED)│
+│  MCP client        │ ◀───────────────────────────────── │  2. token -> principal (hashed tokens)    │
+│  verifier          │   structured results + citations   │  3. per-tool scope check (deny default)   │
+└────────────────────┘                                    │  4. tools: search_docs, rag_answer,       │
+                                                          │     audit_status                          │
+                                                          │  5. zero-egress socket guard              │
+                                                          │  6. hash-chained JSONL audit log          │
+                                                          └──────────────────────────────────────────┘
 ```
 
----
+## What it demonstrates
 
-## 🔐 Security Model
+| Control | How it is enforced | Proven by |
+|---|---|---|
+| Only enrolled workloads can connect | uvicorn `ssl_cert_reqs=CERT_REQUIRED` with a private CA | `test_client_without_certificate_is_rejected`, `test_client_with_untrusted_certificate_is_rejected` |
+| Authentication | Bearer tokens checked in constant time against SHA-256 hashes in `config/policy.yaml` | `test_invalid_token_is_rejected` (HTTP 401) |
+| Least privilege | Each tool requires a scope; unlisted tools are denied for everyone | `test_scope_is_enforced_per_tool` |
+| Zero egress | Every `socket.connect` outside the allowlist raises `EgressBlocked` and is audited | `test_egress_guard_blocks_outbound_and_allows_loopback` |
+| Tamper-evident audit | Each record stores the hash of the previous one; arguments are stored as hashes | `test_audit_chain_detects_tampering`, `..._deleted_record` |
+| Grounded answers | Answers cite numbered sources; the agent's verifier rejects uncited or out-of-range citations | `test_verifier_requires_grounded_citations`, `test_agent_answers_with_verified_citations` |
+| No secrets in git | Certificates are generated at setup and git-ignored; CI fails if key material is tracked | CI `security` job |
 
-This project follows a **zero-trust** and **zero-egress** design:
+The end-to-end tests start the real server over HTTPS in a background thread and talk to it with the real MCP client. There are no mocks at the transport layer. I also checked that the certificate tests catch a broken setup: when client certificates are not required, the two rejection tests fail.
 
-| Layer | Control |
-|------|--------|
-TLS | Mutual TLS (client + server authentication)  
-Network | No public internet egress assumed  
-Identity | Client certificates identify agents  
-Authorization | Tool-level access control  
-Auditability | Structured JSON logs per tool invocation  
-Secrets | Designed to map to KMS / Secrets Manager  
-Ingress | API Gateway / ALB equivalent in production  
-
-In production (GovCloud):
-- mTLS would be enforced at API Gateway / ALB
-- Certificates managed by ACM Private CA
-- Audit logs shipped to CloudWatch / SIEM
-- OpenSearch Serverless used for RAG
-
----
-
-## 🧠 Agentic AI Flow
-
-1. **User/Task Input**
-2. **Agent Planning**
-3. **Tool Selection (MCP)**
-4. **mTLS-secured Tool Calls**
-5. **RAG-based Grounded Responses**
-6. **Compliance Logging**
-7. **Agent Aggregates Results**
-
-This mirrors real **agentic AI orchestration** patterns used in enterprise automation.
-
----
-
-##  Project Structure
-
-```
-
-govcloud-mcp-agent-platform/
-├── mcp_server/
-│   ├── app.py           # MCP tool server (FastAPI)
-│   ├── audit.py         # Structured compliance logging
-│   └── ...
-├── agents/
-│   ├── orchestrator.py # Agent workflow
-│   ├── executor.py     # Secure tool calls (mTLS)
-│   └── planner.py      # Tool selection logic
-├── certs/              # mTLS certificates (CA, server, client)
-├── logs/               # Audit logs (JSONL)
-├── run_server.py       # Server bootstrap
-└── README.md
-
-````
-
----
-
-##  Setup & Run
-
-### 1️⃣ Create virtual environment
+## Quick start
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install fastapi uvicorn requests pydantic
-````
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
 
----
+python scripts/gen_certs.py --out certs     # throwaway CA + server + client certs (git-ignored)
+python run_server.py                        # https://localhost:8443/mcp, client cert required
 
-### 2️⃣ Start MCP Server (mTLS enforced)
-
-```bash
-python run_server.py
+# in another terminal
+python -m agents.orchestrator "How do workloads reach KMS without internet egress?"
 ```
 
-Expected output:
+Real output:
 
-```
-Uvicorn running on https://0.0.0.0:8000
-```
-
----
-
-### 3️⃣ Run Agent Orchestrator
-
-```bash
-python -m agents.orchestrator
-```
-
----
-
-## Example Outputs
-
-### Example 1 — Empty query (baseline execution)
-
-```
-(.venv) mostafa@Mostafas-MacBook-Pro govcloud-mcp-agent-platform % python -m agents.orchestrator
-search_docs => True
-{'result': '[search_docs] Found secure results for: '}
----
-rag_answer => True
-{'result': '[rag_answer] GovCloud enforces zero-egress, private endpoints, IAM, KMS, and audit logging. | Answering: '}
----
-```
-
-### Example 2 — Full query (RAG-style grounded output)
-
-```
-(.venv) mostafa@Mostafas-MacBook-Pro govcloud-mcp-agent-platform % python -m agents.orchestrator
-search_docs => True
-{'result': '[search_docs] Found secure results for: How would you design MCP + RAG in GovCloud with zero egress?'}
----
-rag_answer => True
-{'result': '[rag_answer] GovCloud enforces zero-egress, private endpoints, IAM, KMS, and audit logging. | Answering: How would you design MCP + RAG in GovCloud with zero egress?'}
----
-```
-
----
-
-## 📜 Audit Logging (Compliance-Grade)
-
-Each MCP tool call writes structured logs:
-
-```json
+```text
+[search_docs] PASS: 4 passages retrieved
+[rag_answer] PASS: grounded in sources [1, 2]
 {
-  "correlation_id": "uuid",
-  "tool": "rag_answer",
-  "timestamp": 1730000000,
-  "result": "...",
-  "metadata": {
-    "query": "How would you design MCP + RAG in GovCloud with zero egress?"
-  }
+  "answer": "In AWS GovCloud this is achieved by placing workloads in private subnets with no internet gateway
+             and no NAT gateway, so outbound traffic can only reach destinations inside the VPC. [1] ...
+             Services such as S3, KMS, Secrets Manager, CloudWatch Logs and Bedrock are reached through VPC
+             endpoints (AWS PrivateLink or gateway endpoints). [2]",
+  "citations": [{"id": 1, "source": "zero-egress.md", "section": "What zero egress means", "score": 8.709}, ...]
 }
 ```
 
-This enables:
+Try other identities. A read-only agent can search but is denied `rag_answer`, and the denial is audited:
 
-* Forensic traceability
-* Regulatory audits
-* SIEM ingestion
-* Incident response
+```bash
+AGENT_TOKEN=dev-readonly-token python -m agents.orchestrator "How do workloads reach KMS?"
+# [search_docs] PASS ...   [rag_answer] FAIL: tool returned an error  (access denied: requires scope 'rag_answer')
 
----
-
-## ☁️ GovCloud Mapping
-
-| Local Component     | GovCloud Equivalent               |
-| ------------------- | --------------------------------- |
-| FastAPI MCP Server  | API Gateway + Lambda              |
-| mTLS                | API Gateway mTLS + ACM Private CA |
-| Audit Logs          | CloudWatch + S3                   |
-| RAG Store           | OpenSearch Serverless             |
-| Secrets             | AWS KMS + Secrets Manager         |
-| Agent Orchestration | Step Functions / ECS              |
-| Ingress             | Private ALB                       |
-
----
-
-## 🧪 Testability
-
-This architecture supports:
-
-* Deterministic tool contracts
-* Agent workflow replay
-* Test automation
-* CI/CD validation of tool behavior
-
----
-
-## 🔒 Zero-Egress Design
-
-This platform assumes:
-
-* No direct internet calls from agents
-* All data retrieval occurs via internal tools
-* External services must be proxied via private endpoints
-
-This is mandatory in:
-
-* GovCloud
-* Air-gapped enterprise networks
-* Regulated SaaS deployments
-
----
-
-## Why This Matters
-
-Modern LLM systems in regulated environments **cannot directly access the internet** and **must operate through auditable, secured toolchains**. This project demonstrates:
-
-* How to safely expose AI capabilities
-* How to control agent behavior
-* How to audit AI actions
-* How to deploy in compliance-heavy environments
-
----
-
-## Author Notes
-
-This project focuses on **architecture correctness**, **security posture**, and **operational realism** rather than model quality. The RAG layer is intentionally modular and can be replaced with OpenSearch Serverless + Bedrock or any GovCloud-compatible LLM runtime.
-
----
-
-##  Future Enhancements
-
-* Plug OpenSearch Serverless for real vector retrieval
-* Integrate AWS Bedrock Guardrails
-* Add IAM-based tool scopes
-* Add multi-agent coordination
-* Add CI/CD security scanning
-* Add UI for live agent interaction
-
----
-
-##  Summary
-
-This repo demonstrates a **production-style agentic AI system** with:
-
-* MCP tool servers
-* mTLS security
-* RAG grounding
-* Zero-egress design
-* Auditability
-* GovCloud-compatible architecture
-
-It reflects how **secure enterprise AI platforms** are built in real-world environments.
-
----
-
-If you use or reference this project, feel free to fork and extend it.
-
+AGENT_TOKEN=dev-auditor-token python -m agents.orchestrator "audit log status"
+# [audit_status] PASS: audit chain intact
 ```
 
+The three `dev-*` tokens exist for local development only. The policy file stores only their hashes.
 
+### Docker
+
+```bash
+python scripts/gen_certs.py --out certs
+docker compose up --build                       # read-only container, non-root user, zero egress
+docker compose --profile opensearch up --build  # optional private OpenSearch backend
+```
+
+## Tools
+
+| Tool | Scope | Returns |
+|---|---|---|
+| `search_docs(query, top_k=4)` | `search_docs` | Ranked passages with source, section and BM25 score |
+| `rag_answer(query)` | `rag_answer` | Answer whose sentences cite `[n]` sources, plus the citation list and an `uncited_claims` flag |
+| `audit_status(recent=10)` | `audit_status` | Whether the hash chain verifies, the record count, and recent records |
+
+Answer generation runs inside the boundary. By default it is extractive and deterministic. Set `OLLAMA_URL` (and `OLLAMA_MODEL`) to use a local model instead, and add its host to `EGRESS_ALLOWLIST`.
+
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CERT_DIR` | `certs` | CA, server and client certificates |
+| `POLICY_FILE` | `config/policy.yaml` | Token hashes, client IDs, scopes, and tool-to-scope map |
+| `ZERO_EGRESS` | `1` | Install the outbound-connection guard |
+| `EGRESS_ALLOWLIST` | (empty) | Comma-separated hosts or CIDRs allowed besides loopback |
+| `RETRIEVAL_BACKEND` | `bm25` | `bm25` (in-process) or `opensearch` |
+| `AUDIT_LOG` | `logs/audit.jsonl` | Audit log path |
+| `ALLOWED_HOSTS` | `localhost:*,127.0.0.1:*,mcp-server:*` | Host header allowlist (DNS-rebinding protection) |
+
+## Mapping to AWS GovCloud
+
+| Here | In GovCloud |
+|---|---|
+| `scripts/gen_certs.py` private CA | AWS Private CA with short-lived certificates |
+| uvicorn mTLS | ALB / API Gateway mutual TLS, or mTLS terminated at the task with an ACM-issued cert |
+| `config/policy.yaml` hashed tokens | IdP-issued JWTs (swap `PolicyTokenVerifier` for a JWT verifier); scopes as claims |
+| In-process egress guard | Private subnets, no IGW/NAT, VPC endpoints with endpoint policies |
+| BM25 / OpenSearch | OpenSearch Serverless in the VPC |
+| Local model via `OLLAMA_URL` | Amazon Bedrock through a VPC interface endpoint |
+| Hash-chained JSONL | CloudWatch Logs → S3 with Object Lock → SIEM |
+
+## Threat model (summary)
+
+- **Stolen token, no certificate.** The TLS handshake fails before the token is ever read.
+- **Enrolled workload with an over-reaching prompt.** Scope checks deny any tool outside the token's scopes, and the denial is audited.
+- **Prompt injection that tries to exfiltrate data.** Outbound connections are refused in-process and recorded as `egress/blocked`.
+- **An insider who edits the audit log.** `audit_status` and `verify_chain` report the first altered record.
+- **Out of scope:** model-level jailbreak detection, rate limiting, and certificate revocation (CRL/OCSP).
+
+## Project layout
+
+```
+mcp_server/   server.py (tools + auth), policy.py, audit.py, egress.py, retrieval.py, answer.py, tls.py
+agents/       planner.py, orchestrator.py (MCP client over mTLS), verifier.py (grounding checks)
+config/       policy.yaml
+corpus/       markdown knowledge base used for retrieval
+scripts/      gen_certs.py
+tests/        unit tests + end-to-end tests against the live HTTPS server
+```
+
+## License
+
+MIT
