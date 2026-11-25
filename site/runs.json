@@ -1,0 +1,129 @@
+{
+ "kms": {
+  "steps": [
+   "[search_docs] PASS: 4 passages retrieved",
+   "[rag_answer] PASS: grounded in sources [1, 2]"
+  ],
+  "result": {
+   "answer": "In AWS GovCloud this is achieved by placing workloads in private subnets with no internet gateway and no NAT gateway, so outbound traffic can only reach destinations inside the VPC. [1] A zero-egress workload has no route to the public internet. [1] Services such as S3, KMS, Secrets Manager, CloudWatch Logs and Bedrock are reached through VPC endpoints (AWS PrivateLink or gateway endpoints). [2]",
+   "citations": [
+    {
+     "id": 1,
+     "source": "zero-egress.md",
+     "section": "What zero egress means",
+     "score": 8.709
+    },
+    {
+     "id": 2,
+     "source": "zero-egress.md",
+     "section": "Reaching AWS services without the internet",
+     "score": 5.271
+    },
+    {
+     "id": 3,
+     "source": "secrets-and-keys.md",
+     "section": "Where secrets live",
+     "score": 3.29
+    },
+    {
+     "id": 4,
+     "source": "mtls-identity.md",
+     "section": "Why mutual TLS",
+     "score": 2.588
+    }
+   ]
+  },
+  "audit": {
+   "ts": 1795650268.342151,
+   "client_id": "research-agent",
+   "tool": "rag_answer",
+   "decision": "allow",
+   "detail": null,
+   "args_sha256": "a25d70ba9d2d6aff91903d8ea9e220d2e49206c4c90cdba71812929b26ae875b",
+   "prev_hash": "120f286de0ff7feb5c74f755bdb4e7071b4bc8d14a3ddcc7f90c7183dea6884f",
+   "hash": "f6237ade5b796ebea3d45f9ee9797a37f4a43e7b24221549237b96eeba697990"
+  }
+ },
+ "audit_q": {
+  "steps": [
+   "[search_docs] PASS: 4 passages retrieved",
+   "[rag_answer] PASS: grounded in sources [1, 2, 3]"
+  ],
+  "result": {
+   "answer": "In AWS, audit records are shipped to CloudWatch Logs and archived to S3 with Object Lock for immutable retention. [1] Arguments can be stored as a hash so the audit trail does not become a second copy of sensitive data. [2] Chaining each record to the hash of the previous record makes the log tamper-evident: editing or deleting any record breaks every hash that follows. [3]",
+   "citations": [
+    {
+     "id": 1,
+     "source": "audit-logging.md",
+     "section": "Shipping and retention",
+     "score": 4.383
+    },
+    {
+     "id": 2,
+     "source": "audit-logging.md",
+     "section": "What to record",
+     "score": 3.003
+    },
+    {
+     "id": 3,
+     "source": "audit-logging.md",
+     "section": "Tamper evidence",
+     "score": 2.26
+    },
+    {
+     "id": 4,
+     "source": "secrets-and-keys.md",
+     "section": "Token storage",
+     "score": 1.729
+    }
+   ]
+  },
+  "audit": {
+   "ts": 1795650268.342151,
+   "client_id": "research-agent",
+   "tool": "rag_answer",
+   "decision": "allow",
+   "detail": null,
+   "args_sha256": "a25d70ba9d2d6aff91903d8ea9e220d2e49206c4c90cdba71812929b26ae875b",
+   "prev_hash": "120f286de0ff7feb5c74f755bdb4e7071b4bc8d14a3ddcc7f90c7183dea6884f",
+   "hash": "f6237ade5b796ebea3d45f9ee9797a37f4a43e7b24221549237b96eeba697990"
+  }
+ },
+ "readonly": {
+  "steps": [
+   "[search_docs] PASS: 4 passages retrieved",
+   "[rag_answer] FAIL: tool returned an error"
+  ],
+  "result": null,
+  "audit": {
+   "ts": 1795650269.528922,
+   "client_id": "readonly-agent",
+   "tool": "rag_answer",
+   "decision": "deny",
+   "detail": "requires scope 'rag_answer'",
+   "args_sha256": "3d562f3a4186071a07969c7d8efce0e2542e2b543d4b92b1e17ef45939f38e23",
+   "prev_hash": "fa4d64bbcdc2bc8a6618c09f5464477b11c42278548589baf7026bb941e49b64",
+   "hash": "e46cec92d04a605e6563fa249830a3864c4a4064277f61fb6a53f6928bef8204"
+  }
+ },
+ "auditor": {
+  "steps": [
+   "[audit_status] PASS: audit chain intact"
+  ],
+  "result": {
+   "ok": true,
+   "reason": "audit chain intact",
+   "records": 6
+  },
+  "audit": {
+   "ts": 1795650270.627827,
+   "client_id": "auditor",
+   "tool": "audit_status",
+   "decision": "allow",
+   "detail": null,
+   "args_sha256": "09300314070113c82f0d1a934571ccfe2134b48a6ead3950596d11901104eac3",
+   "prev_hash": "e46cec92d04a605e6563fa249830a3864c4a4064277f61fb6a53f6928bef8204",
+   "hash": "42a80823e2e3380155c131ca1966cdf30502531b4f5fa2ae0e6e09990339b5f5"
+  }
+ }
+}

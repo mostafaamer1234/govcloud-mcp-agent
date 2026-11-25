@@ -8,6 +8,9 @@ A **Model Context Protocol (MCP) tool server** for regulated environments. An ag
 
 It is built on the official [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) (Streamable HTTP transport), so any MCP client can connect to it.
 
+**Interactive walkthrough: [govcloud-mcp-agent.vercel.app](https://govcloud-mcp-agent.vercel.app)**. Step through real recorded requests (allowed, scope-denied, bad token, no certificate) and see each security gate and audit record. The page lives in `site/`.
+
+
 ```
                       TLS 1.2+, client cert REQUIRED
 ┌────────────────────┐  + Authorization: Bearer <token>   ┌──────────────────────────────────────────┐
