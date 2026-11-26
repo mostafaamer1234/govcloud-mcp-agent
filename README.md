@@ -1,3 +1,5 @@
+**Interactive walkthrough: [govcloud-mcp-agent.vercel.app](https://govcloud-mcp-agent.vercel.app)**. Step through real recorded requests (allowed, scope-denied, bad token, no certificate) and see each security gate and audit record.
+
 
 ```md
 # GovCloud-Style MCP Agent Platform (mTLS + RAG + Zero-Egress)
