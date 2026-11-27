@@ -1,0 +1,31 @@
+{
+ "tokens": [
+  {
+   "client_id": "research-agent",
+   "token_sha256": "669b5310cb56b25130bc08f0d4d4054b32dc9fb976bcedcfdb17b955e8bd6093",
+   "scopes": [
+    "search_docs",
+    "rag_answer"
+   ]
+  },
+  {
+   "client_id": "readonly-agent",
+   "token_sha256": "a91e970ba6ba154be9a86febe073a511fc3bbd3c069dfb7d9a10e1acddb2bc8d",
+   "scopes": [
+    "search_docs"
+   ]
+  },
+  {
+   "client_id": "auditor",
+   "token_sha256": "98cf681f2a5cde03b61e87f21f50956519de249c09b0b0c5af316ce8ddd861a7",
+   "scopes": [
+    "audit_status"
+   ]
+  }
+ ],
+ "tools": {
+  "search_docs": "search_docs",
+  "rag_answer": "rag_answer",
+  "audit_status": "audit_status"
+ }
+}

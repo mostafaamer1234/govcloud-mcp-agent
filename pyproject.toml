@@ -1,6 +1,42 @@
 [project]
-name = "govcloud-mcp-agent-platform"
-version = "0.1.0"
+name = "govcloud-mcp-agent"
+version = "1.0.0"
+description = "MCP tool server with mutual TLS, scoped tokens, zero-egress enforcement, grounded RAG, and a tamper-evident audit log"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=2.3,<3",
+    "uvicorn>=0.30",
+    "httpx>=0.27",
+    "pydantic>=2.7",
+    "pyyaml>=6",
+    "rank-bm25>=0.2.2",
+    "cryptography>=42",
+]
 
-[tool.uvicorn]
-app = "mcp_server.app:app"
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "anyio>=4", "ruff>=0.6"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 160
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101", "S104"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["mcp_server", "agents"]

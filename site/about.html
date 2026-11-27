@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About · GovCloud MCP Agent</title>
+  <meta name="description" content="An MCP tool server for regulated environments: mutual TLS, scoped tokens, zero egress, cited answers and a hash-chained audit log. Step through real recorded requests." />
+  <link rel="stylesheet" href="quiet.css" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <nav class="q-nav">
+    <div class="q-wrap">
+      <a class="q-brand" href="/">GovCloud MCP Agent</a>
+      <div class="q-links">
+        <a href="/">Open the console</a>
+        <a href="#inspector">Inspector</a>
+        <a href="#controls">Controls</a>
+        <a href="https://github.com/mostafaamer1234/MCP-mTLS-SecuredAgent-GoveCloudStyle-mTLS-RAG-Zero-Egress-">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <header class="q-wrap q-hero">
+      <p class="q-eyebrow">AI security · Model Context Protocol</p>
+      <h1 class="q-title">Every request earns its answer. <span class="q-muted">Or leaves a record of why it didn't.</span></h1>
+      <p class="q-lede">An MCP tool server for regulated environments. Agents reach retrieval tools only over mutual TLS with scoped tokens, answers must cite their sources, and nothing leaves the network.</p>
+    </header>
+
+    <section class="q-wrap" id="inspector">
+      <p class="q-caps who-label">Who is calling</p>
+      <div class="q-seg who" id="who" role="group" aria-label="Caller"></div>
+      <p class="ask" id="ask"></p>
+
+      <div class="inspect">
+        <ol class="gates" id="gates"></ol>
+        <div class="result">
+          <p class="q-caps" id="result-label">Response</p>
+          <div id="result"></div>
+        </div>
+      </div>
+      <p class="q-note recorded">Recorded from the real server over HTTPS with the real MCP client and throwaway certificates. The outbound-call case is from the test suite.</p>
+    </section>
+
+    <section class="q-wrap q-section" id="controls">
+      <h2 class="q-h2">Seven controls. <span class="q-muted">Each one has a test that fails if it breaks.</span></h2>
+      <table class="q-table">
+        <thead><tr><th>Control</th><th>How it is enforced</th><th>Proven by</th></tr></thead>
+        <tbody>
+          <tr><td>Only enrolled workloads connect</td><td>uvicorn requires a client certificate signed by a private CA</td><td><code>test_client_without_certificate_is_rejected</code></td></tr>
+          <tr><td>Authentication</td><td>Bearer tokens compared in constant time against SHA-256 hashes</td><td><code>test_invalid_token_is_rejected</code></td></tr>
+          <tr><td>Least privilege</td><td>Each tool needs a scope; unlisted tools are denied for everyone</td><td><code>test_scope_is_enforced_per_tool</code></td></tr>
+          <tr><td>Zero egress</td><td>Every <code>socket.connect</code> outside the allowlist raises and is audited</td><td><code>test_egress_guard_blocks_outbound…</code></td></tr>
+          <tr><td>Tamper-evident audit</td><td>Each record stores the previous record's hash; arguments stored as hashes</td><td><code>test_audit_chain_detects_tampering</code></td></tr>
+          <tr><td>Grounded answers</td><td>The verifier rejects uncited or out-of-range citations</td><td><code>test_verifier_requires_grounded_citations</code></td></tr>
+          <tr><td>No secrets in git</td><td>Certificates generated at setup and ignored; CI fails on tracked key material</td><td>CI <code>security</code> job</td></tr>
+        </tbody>
+      </table>
+      <p class="q-note">End-to-end tests start the real server over HTTPS and talk to it with the real MCP client. There are no mocks at the transport layer.</p>
+    </section>
+
+    <section class="q-wrap q-section">
+      <h2 class="q-h2">Run it yourself.</h2>
+      <pre class="q-code">python scripts/gen_certs.py --out certs      # throwaway CA, server and client certs
+python run_server.py                         # https://localhost:8443/mcp, client cert required
+python -m agents.orchestrator "How do workloads reach KMS without internet egress?"</pre>
+      <p class="q-note run-note">Hosting this publicly would mean terminating TLS somewhere other than the server, which removes the point of mutual TLS. That is why this page replays recorded sessions instead.</p>
+    </section>
+  </main>
+
+  <footer class="q-foot">
+    <div class="q-wrap">
+      <span>GovCloud MCP Agent · Mostafa Amer</span>
+      <a href="https://github.com/mostafaamer1234/MCP-mTLS-SecuredAgent-GoveCloudStyle-mTLS-RAG-Zero-Egress-">Source on GitHub</a>
+    </div>
+  </footer>
+  <script src="about.js"></script>
+</body>
+</html>

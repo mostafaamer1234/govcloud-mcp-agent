@@ -1,0 +1,26 @@
+# Generated at setup time; private keys never belong in git
+certs/
+*.key
+*.pem
+
+# Runtime output
+logs/
+*.jsonl
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Local env
+.env
+.env.*
+!.env.example
+.DS_Store
+build/
+dist/
+.vercel

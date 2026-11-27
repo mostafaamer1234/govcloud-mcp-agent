@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GovCloud MCP Agent · Secure document Q&amp;A console</title>
+  <meta name="description" content="Ask questions of your own documents with cited answers, while every request passes identity, scope, verification and a tamper-evident audit log. Nothing leaves your browser." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a1324'/%3E%3Cpath d='M16 5l9 4v6c0 6-4 10-9 12-5-2-9-6-9-12V9z' fill='none' stroke='%2334d399' stroke-width='2.2'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="console.css" />
+</head>
+<body>
+  <header class="sysbar">
+    <a class="sys" href="/"><svg viewBox="0 0 32 32" width="20" height="20" aria-hidden="true"><path d="M16 4l10 4.5v6.5c0 6.5-4.4 11-10 13-5.6-2-10-6.5-10-13V8.5z" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>GOVCLOUD MCP AGENT</a>
+    <div class="pills">
+      <span class="pill ok" title="Everything runs in this browser tab">BOUNDARY: THIS TAB</span>
+      <span class="pill ok" id="egress-pill">EGRESS: BLOCKED</span>
+      <span class="pill" id="chain-pill">AUDIT: 0 RECORDS</span>
+    </div>
+    <nav><a href="/about">About</a><a href="https://github.com/mostafaamer1234/MCP-mTLS-SecuredAgent-GoveCloudStyle-mTLS-RAG-Zero-Egress-">Source</a></nav>
+  </header>
+
+  <div class="grid">
+    <aside class="col left">
+      <section class="box">
+        <h2>Identity</h2>
+        <label class="field">Client certificate
+          <select id="cert"><option value="valid">Valid, issued by the boundary CA</option><option value="none">None presented</option><option value="foreign">Signed by an unknown CA</option></select>
+        </label>
+        <label class="field">Bearer token
+          <select id="token-preset">
+            <option value="dev-research-token">research-agent · search + answer</option>
+            <option value="dev-readonly-token">readonly-agent · search only</option>
+            <option value="dev-auditor-token">auditor · audit status only</option>
+            <option value="custom">Type a token…</option>
+          </select>
+        </label>
+        <input class="field-input" id="token" type="text" value="dev-research-token" spellcheck="false" autocomplete="off" hidden />
+        <p class="small">Tokens are checked against the SHA-256 hashes in <code>config/policy.yaml</code>. These three are the repository's documented development tokens.</p>
+      </section>
+      <section class="box">
+        <h2>Knowledge base <span id="kb-count"></span></h2>
+        <ul class="docs" id="docs"></ul>
+        <label class="dropzone" id="drop">
+          <input type="file" id="files" accept=".md,.txt,.markdown,text/plain,text/markdown" multiple hidden />
+          <b>+ Add your documents</b><span>Markdown or text. Indexed in this tab only.</span>
+        </label>
+      </section>
+    </aside>
+
+    <main class="col mid">
+      <div class="log" id="log" aria-live="polite">
+        <div class="welcome">
+          <p class="prompt">$ agent --help</p>
+          <p>Ask a question and the agent plans tool calls, retrieves evidence from the knowledge base and answers only with cited sources. Each step passes the same checks as the MCP server: client certificate, token, tool scope, verifier and the audit log.</p>
+          <div class="try" id="try"></div>
+        </div>
+      </div>
+      <form class="ask" id="ask" autocomplete="off">
+        <span class="caret">›</span>
+        <input id="q" placeholder="Ask about your documents, or type: audit status" spellcheck="false" />
+        <button type="submit">Run</button>
+      </form>
+    </main>
+
+    <aside class="col right">
+      <section class="box">
+        <h2>Audit log <button class="mini" id="verify" type="button">Verify chain</button></h2>
+        <p class="small">Every tool decision is appended with the SHA-256 of the record before it. Arguments are stored as a hash.</p>
+        <ol class="audit" id="audit"></ol>
+        <div class="row"><button class="mini warn" id="tamper" type="button">Tamper with a record</button><span id="verify-out" class="small"></span></div>
+      </section>
+      <section class="box">
+        <h2>Egress test</h2>
+        <p class="small">The console wraps <code>fetch</code> with the same allowlist idea as <code>mcp_server/egress.py</code>. Only this site is allowed.</p>
+        <div class="row"><input class="field-input" id="egress-url" value="https://api.openai.com/v1/chat" spellcheck="false" /><button class="mini" id="egress" type="button">Try</button></div>
+        <p class="small" id="egress-out"></p>
+      </section>
+    </aside>
+  </div>
+  <script src="console.js"></script>
+</body>
+</html>
